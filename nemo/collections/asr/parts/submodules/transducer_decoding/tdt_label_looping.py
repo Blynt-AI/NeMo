@@ -466,6 +466,7 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
             )
             scores, labels = logits[:, :-num_durations].max(dim=-1)
 
+            logits_with_fusion = None
             if self.has_fusion_models():
                 fusion_scores_list, fusion_states_candidates_list = [], []
                 logits_with_fusion = logits.clone()
@@ -485,16 +486,23 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
 
                 # get max scores and labels without blank
                 fusion_scores_max, fusion_labels_max = logits_with_fusion[:, : -num_durations - 1].max(dim=-1)
+
+                if self.preserve_alignments:
+                    # Apply fusion logic: at this point, labels == blank_index means blank was best without fusion
+                    blank_is_best_without_fusion = labels == self._blank_index
+                    
+                    # If blank is best without fusion, use original logits for that sample
+                    if blank_is_best_without_fusion.any():
+                        logits_with_fusion[blank_is_best_without_fusion] = logits[blank_is_best_without_fusion]
+                    
+                    # If blank is NOT best without fusion, use fused logits but set blank to -inf
+                    non_blank_is_best = ~blank_is_best_without_fusion
+                    if non_blank_is_best.any():
+                        logits_with_fusion[non_blank_is_best, self._blank_index] = float('-inf')
+
                 # preserve "blank" / "non-blank" category
                 torch.where(labels == self._blank_index, labels, fusion_labels_max, out=labels)
                 torch.where(labels == self._blank_index, scores, fusion_scores_max, out=scores)
-
-                # Check if blank is the most likely token in original logits (excluding durations)
-                blank_is_most_likely = labels == self._blank_index
-                
-                # Only restore blank logit if blank was the most likely in original logits
-                if blank_is_most_likely.any():
-                    logits_with_fusion[blank_is_most_likely, self._blank_index] = logits[blank_is_most_likely, self._blank_index]
 
 
             jump_durations_indices = logits[:, -num_durations:].argmax(dim=-1)
@@ -507,11 +515,11 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
             durations.masked_fill_(torch.logical_and(durations == 0, blank_mask), 1)
             time_indices_current_labels.copy_(time_indices)
             if use_alignments:
-                print("Add 1")
+                logits_alignments = logits_with_fusion if logits_with_fusion is not None else logits
                 alignments.add_results_masked_(
                     active_mask=active_mask,
                     time_indices=time_indices_current_labels,
-                    logits=logits_with_fusion if self.preserve_alignments else None,
+                    logits=logits_alignments if self.preserve_alignments else None,
                     labels=labels if self.preserve_alignments else None,
                     confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
                 )
@@ -540,6 +548,7 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 # labels[advance_mask] are blank, and we are looking for non-blank labels
                 more_scores, more_labels = logits[:, :-num_durations].max(dim=-1)
 
+                logits_with_fusion = None
                 if self.has_fusion_models():
                     logits_with_fusion = logits.clone()
                     for fusion_scores in fusion_scores_list:
@@ -549,14 +558,22 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                     more_scores_w_fusion, more_labels_w_fusion = logits_with_fusion[:, : -num_durations - 1].max(
                         dim=-1
                     )
+
+                    if self.preserve_alignments:
+                        # Apply fusion logic based on whether blank is best without fusion
+                        blank_is_best_without_fusion = more_labels == self._blank_index
+                        
+                        # If blank is best without fusion, use original logits for that sample
+                        if blank_is_best_without_fusion.any():
+                            logits_with_fusion[blank_is_best_without_fusion] = logits[blank_is_best_without_fusion]
+                        
+                        # If blank is NOT best without fusion, use fused logits but set blank to -inf
+                        non_blank_is_best = ~blank_is_best_without_fusion
+                        if non_blank_is_best.any():
+                            logits_with_fusion[non_blank_is_best, self._blank_index] = float('-inf')
+                    
                     # preserve "blank" / "non-blank" category
                     torch.where(more_labels == self._blank_index, more_labels, more_labels_w_fusion, out=more_labels)
-                    # Check if blank is the most likely token in original logits (excluding durations)
-                    blank_is_most_likely = more_labels == self._blank_index
-                    
-                    # Only restore blank logit if blank was the most likely in original logits
-                    if blank_is_most_likely.any():
-                        logits_with_fusion[blank_is_most_likely, self._blank_index] = logits[blank_is_most_likely, self._blank_index]
 
                 # same as: labels[advance_mask] = more_labels[advance_mask], but non-blocking
                 torch.where(advance_mask, more_labels, labels, out=labels)
@@ -566,11 +583,11 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 durations = model_durations[jump_durations_indices]
 
                 if use_alignments:
-                    print("Add 2")
+                    logits_alignments = logits_with_fusion if logits_with_fusion is not None else logits
                     alignments.add_results_masked_(
                         active_mask=advance_mask,
                         time_indices=time_indices_current_labels,
-                        logits=logits_with_fusion if self.preserve_alignments else None,
+                        logits=logits_alignments if self.preserve_alignments else None,
                         labels=more_labels if self.preserve_alignments else None,
                         confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
                     )
