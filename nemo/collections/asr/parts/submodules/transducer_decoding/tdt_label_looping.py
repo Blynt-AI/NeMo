@@ -489,6 +489,14 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 torch.where(labels == self._blank_index, labels, fusion_labels_max, out=labels)
                 torch.where(labels == self._blank_index, scores, fusion_scores_max, out=scores)
 
+                # Check if blank is the most likely token in original logits (excluding durations)
+                blank_is_most_likely = labels == self._blank_index
+                
+                # Only restore blank logit if blank was the most likely in original logits
+                if blank_is_most_likely.any():
+                    logits_with_fusion[blank_is_most_likely, self._blank_index] = logits[blank_is_most_likely, self._blank_index]
+
+
             jump_durations_indices = logits[:, -num_durations:].argmax(dim=-1)
             durations = model_durations[jump_durations_indices]
 
@@ -499,10 +507,11 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
             durations.masked_fill_(torch.logical_and(durations == 0, blank_mask), 1)
             time_indices_current_labels.copy_(time_indices)
             if use_alignments:
+                print("Add 1")
                 alignments.add_results_masked_(
                     active_mask=active_mask,
                     time_indices=time_indices_current_labels,
-                    logits=logits if self.preserve_alignments else None,
+                    logits=logits_with_fusion if self.preserve_alignments else None,
                     labels=labels if self.preserve_alignments else None,
                     confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
                 )
@@ -542,6 +551,12 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                     )
                     # preserve "blank" / "non-blank" category
                     torch.where(more_labels == self._blank_index, more_labels, more_labels_w_fusion, out=more_labels)
+                    # Check if blank is the most likely token in original logits (excluding durations)
+                    blank_is_most_likely = more_labels == self._blank_index
+                    
+                    # Only restore blank logit if blank was the most likely in original logits
+                    if blank_is_most_likely.any():
+                        logits_with_fusion[blank_is_most_likely, self._blank_index] = logits[blank_is_most_likely, self._blank_index]
 
                 # same as: labels[advance_mask] = more_labels[advance_mask], but non-blocking
                 torch.where(advance_mask, more_labels, labels, out=labels)
@@ -551,10 +566,11 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 durations = model_durations[jump_durations_indices]
 
                 if use_alignments:
+                    print("Add 2")
                     alignments.add_results_masked_(
                         active_mask=advance_mask,
                         time_indices=time_indices_current_labels,
-                        logits=logits if self.preserve_alignments else None,
+                        logits=logits_with_fusion if self.preserve_alignments else None,
                         labels=more_labels if self.preserve_alignments else None,
                         confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
                     )
