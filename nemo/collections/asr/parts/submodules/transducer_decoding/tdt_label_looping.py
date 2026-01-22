@@ -466,6 +466,7 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
             )
             scores, labels = logits[:, :-num_durations].max(dim=-1)
 
+            logits_with_fusion = None
             if self.has_fusion_models():
                 fusion_scores_list, fusion_states_candidates_list = [], []
                 logits_with_fusion = logits.clone()
@@ -499,13 +500,22 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
             durations.masked_fill_(torch.logical_and(durations == 0, blank_mask), 1)
             time_indices_current_labels.copy_(time_indices)
             if use_alignments:
-                alignments.add_results_masked_(
-                    active_mask=active_mask,
-                    time_indices=time_indices_current_labels,
-                    logits=logits if self.preserve_alignments else None,
-                    labels=labels if self.preserve_alignments else None,
-                    confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
-                )
+                if logits_with_fusion is None:
+                    alignments.add_results_masked_(
+                        active_mask=active_mask,
+                        time_indices=time_indices_current_labels,
+                        logits=logits if self.preserve_alignments else None,
+                        labels=labels if self.preserve_alignments else None,
+                        confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
+                    )
+                else:
+                    alignments.add_results_masked_(
+                        active_mask=active_mask,
+                        time_indices=time_indices_current_labels,
+                        logits=logits_with_fusion if self.preserve_alignments else None,
+                        labels=labels if self.preserve_alignments else None,
+                        confidence=self._get_frame_confidence(logits=logits_with_fusion, num_durations=num_durations),
+                    )
 
             # advance_mask is a mask for current batch for searching non-blank labels;
             # each element is True if non-blank symbol is not yet found AND we can increase the time index
@@ -531,6 +541,7 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 # labels[advance_mask] are blank, and we are looking for non-blank labels
                 more_scores, more_labels = logits[:, :-num_durations].max(dim=-1)
 
+                logits_with_fusion = None
                 if self.has_fusion_models():
                     logits_with_fusion = logits.clone()
                     for fusion_scores in fusion_scores_list:
@@ -551,13 +562,22 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 durations = model_durations[jump_durations_indices]
 
                 if use_alignments:
-                    alignments.add_results_masked_(
-                        active_mask=advance_mask,
-                        time_indices=time_indices_current_labels,
-                        logits=logits if self.preserve_alignments else None,
-                        labels=more_labels if self.preserve_alignments else None,
-                        confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
-                    )
+                    if logits_with_fusion is None:
+                        alignments.add_results_masked_(
+                            active_mask=advance_mask,
+                            time_indices=time_indices_current_labels,
+                            logits=logits if self.preserve_alignments else None,
+                            labels=more_labels if self.preserve_alignments else None,
+                            confidence=self._get_frame_confidence(logits=logits, num_durations=num_durations),
+                        )
+                    else:
+                       alignments.add_results_masked_(
+                            active_mask=advance_mask,
+                            time_indices=time_indices_current_labels,
+                            logits=logits_with_fusion if self.preserve_alignments else None,
+                            labels=more_labels if self.preserve_alignments else None,
+                            confidence=self._get_frame_confidence(logits=logits_with_fusion, num_durations=num_durations),
+                        )
 
                 blank_mask = labels == self._blank_index
                 # for blank labels force duration >= 1
