@@ -712,11 +712,6 @@ class BatchedAlignments:
         """
         if (self.current_lengths + active_mask).max() >= self._max_length:
             self._allocate_more()
-        print("Adding labels to alignments: ", labels)
-        # Get the best labels from the logits where the durations have been removed (last 5)
-        best_labels = torch.argmax(logits[:, :-5], dim=-1)
-        print("Best labels: ", best_labels)
-        print()
         self.add_results_masked_no_checks_(
             active_mask=active_mask, time_indices=time_indices, logits=logits, labels=labels, confidence=confidence
         )
