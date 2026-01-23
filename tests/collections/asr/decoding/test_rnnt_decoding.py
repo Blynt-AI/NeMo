@@ -578,9 +578,7 @@ class TestRNNTDecoding:
             fusion_models_alpha=fusion_models_alpha,
         )
 
-        durations_list = OmegaConf.to_container(
-            model.decoding.durations, resolve=True
-        )
+        durations_list = OmegaConf.to_container(model.decoding.durations, resolve=True)
         num_durations = len(durations_list)
 
         with torch.no_grad():

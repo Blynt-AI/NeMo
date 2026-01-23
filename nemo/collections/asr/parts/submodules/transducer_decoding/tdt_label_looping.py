@@ -492,11 +492,11 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                     # The goal is to ensure that the labels are coherent with the logits.
 
                     blank_is_best_without_fusion = labels == self._blank_index
-                    
+
                     # If blank is best without fusion, use original logits for that sample
                     if blank_is_best_without_fusion.any():
                         logits_with_fusion[blank_is_best_without_fusion] = logits[blank_is_best_without_fusion]
-                    
+
                     # If blank is NOT best without fusion, use fused logits but set blank to -inf to ensure that the blank is not selected.
                     non_blank_is_best = ~blank_is_best_without_fusion
                     if non_blank_is_best.any():
@@ -505,7 +505,6 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 # preserve "blank" / "non-blank" category
                 torch.where(labels == self._blank_index, labels, fusion_labels_max, out=labels)
                 torch.where(labels == self._blank_index, scores, fusion_scores_max, out=scores)
-
 
             jump_durations_indices = logits[:, -num_durations:].argmax(dim=-1)
             durations = model_durations[jump_durations_indices]
@@ -566,16 +565,16 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                         # The goal is to ensure that the labels are coherent with the logits.
 
                         blank_is_best_without_fusion = more_labels == self._blank_index
-                        
+
                         # If blank is best without fusion, use original logits for that sample
                         if blank_is_best_without_fusion.any():
                             logits_with_fusion[blank_is_best_without_fusion] = logits[blank_is_best_without_fusion]
-                        
+
                         # If blank is NOT best without fusion, use fused logits but set blank to -inf
                         non_blank_is_best = ~blank_is_best_without_fusion
                         if non_blank_is_best.any():
                             logits_with_fusion[non_blank_is_best, self._blank_index] = float('-inf')
-                    
+
                     # preserve "blank" / "non-blank" category
                     torch.where(more_labels == self._blank_index, more_labels, more_labels_w_fusion, out=more_labels)
 
