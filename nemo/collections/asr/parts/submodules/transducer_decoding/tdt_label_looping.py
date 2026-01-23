@@ -488,14 +488,16 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                 fusion_scores_max, fusion_labels_max = logits_with_fusion[:, : -num_durations - 1].max(dim=-1)
 
                 if self.preserve_alignments:
-                    # Apply fusion logic: at this point, labels == blank_index means blank was best without fusion
+                    # The following code applies the fusion logic to the logits_with_fusion tensor.
+                    # The goal is to ensure that the labels are coherent with the logits.
+
                     blank_is_best_without_fusion = labels == self._blank_index
                     
                     # If blank is best without fusion, use original logits for that sample
                     if blank_is_best_without_fusion.any():
                         logits_with_fusion[blank_is_best_without_fusion] = logits[blank_is_best_without_fusion]
                     
-                    # If blank is NOT best without fusion, use fused logits but set blank to -inf
+                    # If blank is NOT best without fusion, use fused logits but set blank to -inf to ensure that the blank is not selected.
                     non_blank_is_best = ~blank_is_best_without_fusion
                     if non_blank_is_best.any():
                         logits_with_fusion[non_blank_is_best, self._blank_index] = float('-inf')
@@ -560,7 +562,9 @@ class GreedyBatchedTDTLabelLoopingComputer(GreedyBatchedLabelLoopingComputerBase
                     )
 
                     if self.preserve_alignments:
-                        # Apply fusion logic based on whether blank is best without fusion
+                        # The following code applies the fusion logic to the logits_with_fusion tensor.
+                        # The goal is to ensure that the labels are coherent with the logits.
+
                         blank_is_best_without_fusion = more_labels == self._blank_index
                         
                         # If blank is best without fusion, use original logits for that sample
