@@ -86,6 +86,7 @@ from dataclasses import is_dataclass
 
 import lightning.pytorch as pl
 from omegaconf import DictConfig, OmegaConf, open_dict
+from typing import Union
 
 from nemo.collections.asr.models import ASRModel
 from nemo.core import adapter_mixins
@@ -126,7 +127,7 @@ def update_model_cfg(original_cfg, new_cfg):
     return new_cfg
 
 
-def add_global_adapter_cfg(model: ASRModel, global_adapter_cfg):
+def add_global_adapter_cfg(model: ASRModel, global_adapter_cfg: Union[DictConfig, dict]):
     # Convert to DictConfig from dict or Dataclass
     if is_dataclass(global_adapter_cfg):
         global_adapter_cfg = OmegaConf.structured(global_adapter_cfg)

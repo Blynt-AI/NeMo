@@ -56,6 +56,7 @@ https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/asr/configs.ht
 import time
 import lightning.pytorch as pl
 from omegaconf import DictConfig, OmegaConf
+from typing import Union
 
 from nemo.collections.asr.models import ASRModel
 from nemo.core.config import hydra_runner
@@ -139,7 +140,7 @@ def check_vocabulary(asr_model: ASRModel, cfg: DictConfig) -> ASRModel:
     return asr_model
 
 
-def update_tokenizer(asr_model: ASRModel, tokenizer_dir, tokenizer_type) -> ASRModel:
+def update_tokenizer(asr_model: ASRModel, tokenizer_dir: Union[str, DictConfig], tokenizer_type: str) -> ASRModel:
     """
     Updates the tokenizer of the model and also reinitializes the decoder if the vocabulary size
     of the new tokenizer differs from that of the loaded model.
