@@ -126,7 +126,7 @@ def update_model_cfg(original_cfg, new_cfg):
     return new_cfg
 
 
-def add_global_adapter_cfg(model, global_adapter_cfg):
+def add_global_adapter_cfg(model: ASRModel, global_adapter_cfg):
     # Convert to DictConfig from dict or Dataclass
     if is_dataclass(global_adapter_cfg):
         global_adapter_cfg = OmegaConf.structured(global_adapter_cfg)

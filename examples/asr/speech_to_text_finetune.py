@@ -112,7 +112,7 @@ def get_base_model(trainer: pl.Trainer, cfg: DictConfig) -> ASRModel:
     return asr_model
 
 
-def check_vocabulary(asr_model: ASRModel, cfg: DictConfig):
+def check_vocabulary(asr_model: ASRModel, cfg: DictConfig) -> ASRModel:
     """
     Checks if the decoder and vocabulary of the model needs to be updated.
     If either of them needs to be updated, it updates them and returns the updated model.
@@ -139,7 +139,7 @@ def check_vocabulary(asr_model: ASRModel, cfg: DictConfig):
     return asr_model
 
 
-def update_tokenizer(asr_model: ASRModel, tokenizer_dir, tokenizer_type):
+def update_tokenizer(asr_model: ASRModel, tokenizer_dir, tokenizer_type) -> ASRModel:
     """
     Updates the tokenizer of the model and also reinitializes the decoder if the vocabulary size
     of the new tokenizer differs from that of the loaded model.
@@ -173,7 +173,7 @@ def update_tokenizer(asr_model: ASRModel, tokenizer_dir, tokenizer_type):
     return asr_model
 
 
-def setup_dataloaders(asr_model: ASRModel, cfg: DictConfig):
+def setup_dataloaders(asr_model: ASRModel, cfg: DictConfig) -> ASRModel:
     """
     Sets up the training, validation and test dataloaders for the model.
     Args:
