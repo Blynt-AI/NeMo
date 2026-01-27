@@ -83,10 +83,10 @@ https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/asr/results.ht
 """
 import os
 from dataclasses import is_dataclass
+from typing import Union
 
 import lightning.pytorch as pl
 from omegaconf import DictConfig, OmegaConf, open_dict
-from typing import Union
 
 from nemo.collections.asr.models import ASRModel
 from nemo.core import adapter_mixins

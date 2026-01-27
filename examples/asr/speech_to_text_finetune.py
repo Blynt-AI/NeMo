@@ -54,9 +54,10 @@ For documentation on fine-tuning this model, please visit:
 https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/asr/configs.html#fine-tuning-configurations
 """
 import time
+from typing import Union
+
 import lightning.pytorch as pl
 from omegaconf import DictConfig, OmegaConf
-from typing import Union
 
 from nemo.collections.asr.models import ASRModel
 from nemo.core.config import hydra_runner
