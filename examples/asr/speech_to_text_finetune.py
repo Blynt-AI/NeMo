@@ -55,7 +55,7 @@ https://docs.nvidia.com/deeplearning/nemo/user-guide/docs/en/main/asr/configs.ht
 """
 import time
 import lightning.pytorch as pl
-from omegaconf import OmegaConf
+from omegaconf import DictConfig, OmegaConf
 
 from nemo.collections.asr.models import ASRModel
 from nemo.core.config import hydra_runner
@@ -65,7 +65,7 @@ from nemo.utils.get_rank import is_global_rank_zero
 from nemo.utils.trainer_utils import resolve_trainer_cfg
 
 
-def get_base_model(trainer, cfg):
+def get_base_model(trainer: pl.Trainer, cfg: DictConfig) -> ASRModel:
     """
     Returns the base model to be fine-tuned.
     Currently supports two types of initializations:
@@ -112,7 +112,7 @@ def get_base_model(trainer, cfg):
     return asr_model
 
 
-def check_vocabulary(asr_model, cfg):
+def check_vocabulary(asr_model: ASRModel, cfg: DictConfig):
     """
     Checks if the decoder and vocabulary of the model needs to be updated.
     If either of them needs to be updated, it updates them and returns the updated model.
@@ -139,7 +139,7 @@ def check_vocabulary(asr_model, cfg):
     return asr_model
 
 
-def update_tokenizer(asr_model, tokenizer_dir, tokenizer_type):
+def update_tokenizer(asr_model: ASRModel, tokenizer_dir, tokenizer_type):
     """
     Updates the tokenizer of the model and also reinitializes the decoder if the vocabulary size
     of the new tokenizer differs from that of the loaded model.
@@ -173,7 +173,7 @@ def update_tokenizer(asr_model, tokenizer_dir, tokenizer_type):
     return asr_model
 
 
-def setup_dataloaders(asr_model, cfg):
+def setup_dataloaders(asr_model: ASRModel, cfg: DictConfig):
     """
     Sets up the training, validation and test dataloaders for the model.
     Args:
