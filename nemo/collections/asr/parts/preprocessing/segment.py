@@ -262,6 +262,8 @@ class AudioSegment(object):
         Audio sample type is usually integer or float-point.
         Integers will be scaled to [-1, 1] in float32.
         """
+        if isinstance(samples, list):
+            samples = np.array(samples)
         float32_samples = samples.astype('float32')
         if samples.dtype in (np.int8, np.int16, np.int32, np.int64):
             bits = np.iinfo(samples.dtype).bits
